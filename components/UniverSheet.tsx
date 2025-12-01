@@ -421,11 +421,15 @@ export const UniverSheet = forwardRef<UniverSheetRef, UniverSheetProps>(({
     return false;
   }, [columns]);
 
-  // Keep refs to current data/columns for initialization function
+  // Keep refs to current data/columns/callbacks for initialization function
   const dataRef = useRef(data);
   const columnsRef = useRef(columns);
+  const onColumnsChangeRef = useRef(onColumnsChange);
+  const onDataChangeRef = useRef(onDataChange);
   dataRef.current = data;
   columnsRef.current = columns;
+  onColumnsChangeRef.current = onColumnsChange;
+  onDataChangeRef.current = onDataChange;
 
   // Initialize Univer instance - stable function that reads from refs
   const initializeUniver = useCallback(() => {
@@ -560,8 +564,78 @@ export const UniverSheet = forwardRef<UniverSheetRef, UniverSheetProps>(({
       prevColumnsRef.current = [...currentColumns];
       prevDataRef.current = [...currentData];
 
-      // Set up listener for cell value changes to style new headers
+      // Set up listener for cell value changes to style new headers and sync data
       let isApplyingStyle = false; // Flag to prevent recursion
+      let syncDebounceTimer: NodeJS.Timeout | null = null;
+
+      // Function to sync data from sheet to React state
+      const syncDataToReact = () => {
+        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = setTimeout(() => {
+          const workbook = univerAPI.getActiveWorkbook();
+          if (!workbook) return;
+          const sheet = workbook.getActiveSheet();
+          if (!sheet) return;
+
+          // Read columns from header row
+          const sheetColumns: string[] = [];
+          const maxCols = 50;
+          for (let i = 0; i < maxCols; i++) {
+            const cellRef = `${getColumnLetter(i)}1`;
+            const range = sheet.getRange(cellRef);
+            if (range) {
+              const value = range.getValue();
+              if (value && String(value).trim()) {
+                sheetColumns.push(String(value).trim());
+              } else {
+                break;
+              }
+            }
+          }
+
+          if (sheetColumns.length === 0) return;
+
+          // Read data rows
+          const sheetData: CsvRow[] = [];
+          const maxRows = 500;
+          for (let rowIdx = 1; rowIdx < maxRows; rowIdx++) {
+            const row: CsvRow = {};
+            let hasData = false;
+
+            for (let colIdx = 0; colIdx < sheetColumns.length; colIdx++) {
+              const cellRef = `${getColumnLetter(colIdx)}${rowIdx + 1}`;
+              const range = sheet.getRange(cellRef);
+              if (range) {
+                const value = range.getValue();
+                const strValue = value != null ? String(value).trim() : '';
+                row[sheetColumns[colIdx]] = strValue;
+                if (strValue) hasData = true;
+              }
+            }
+
+            if (!hasData) break;
+            sheetData.push(row);
+          }
+
+          // Sync columns if changed
+          if (onColumnsChangeRef.current) {
+            const columnsChanged = sheetColumns.length !== columnsRef.current.length ||
+              sheetColumns.some((col, i) => col !== columnsRef.current[i]);
+            if (columnsChanged) {
+              onColumnsChangeRef.current(sheetColumns);
+            }
+          }
+
+          // Sync data if changed
+          if (onDataChangeRef.current) {
+            const dataChanged = sheetData.length !== dataRef.current.length;
+            if (dataChanged) {
+              onDataChangeRef.current(sheetData);
+            }
+          }
+        }, 300);
+      };
+
       try {
         univerAPI.onCommandExecuted((command: any) => {
           // Skip if we're currently applying styles (prevents recursion)
@@ -572,7 +646,7 @@ export const UniverSheet = forwardRef<UniverSheetRef, UniverSheetProps>(({
             const params = command.params;
             const cellValue = params?.cellValue;
 
-            // Check if header row (row 0) was modified
+            // Check if header row (row 0) was modified - apply styling
             if (cellValue && cellValue[0] !== undefined) {
               const workbook = univerAPI.getActiveWorkbook();
               if (workbook) {
@@ -607,6 +681,18 @@ export const UniverSheet = forwardRef<UniverSheetRef, UniverSheetProps>(({
                 }
               }
             }
+
+            // Sync all changes to React state
+            syncDataToReact();
+          }
+
+          // Also listen for row/column insert/remove operations
+          if (command.id?.includes('insert-row') ||
+              command.id?.includes('remove-row') ||
+              command.id?.includes('insert-col') ||
+              command.id?.includes('remove-col') ||
+              command.id?.includes('delete')) {
+            syncDataToReact();
           }
         });
       } catch (e) {
