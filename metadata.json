@@ -1,0 +1,5 @@
+{
+  "name": "Syntellix AI",
+  "description": "An intelligent CSV enrichment tool that uses Google Gemini with Search Grounding to research and populate missing data columns automatically.",
+  "requestFramePermissions": []
+}

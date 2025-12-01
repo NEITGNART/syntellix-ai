@@ -1,0 +1,47 @@
+{
+  "name": "syntellix-ai",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@univerjs/core": "^0.12.3",
+    "@univerjs/design": "^0.12.3",
+    "@univerjs/docs": "^0.12.3",
+    "@univerjs/docs-ui": "^0.12.3",
+    "@univerjs/engine-formula": "^0.12.3",
+    "@univerjs/engine-render": "^0.12.3",
+    "@univerjs/preset-sheets-conditional-formatting": "^0.12.3",
+    "@univerjs/preset-sheets-core": "^0.12.3",
+    "@univerjs/preset-sheets-data-validation": "^0.12.3",
+    "@univerjs/preset-sheets-filter": "^0.12.3",
+    "@univerjs/preset-sheets-find-replace": "^0.12.3",
+    "@univerjs/preset-sheets-hyper-link": "^0.12.3",
+    "@univerjs/preset-sheets-sort": "^0.12.3",
+    "@univerjs/presets": "^0.12.3",
+    "@univerjs/sheets": "^0.12.3",
+    "@univerjs/sheets-filter": "^0.12.3",
+    "@univerjs/sheets-filter-ui": "^0.12.3",
+    "@univerjs/sheets-formula": "^0.12.3",
+    "@univerjs/sheets-ui": "^0.12.3",
+    "@univerjs/ui": "^0.12.3",
+    "clsx": "2.0.0",
+    "lucide-react": "0.294.0",
+    "papaparse": "5.4.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "rxjs": "^7.8.2",
+    "xlsx": "0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
